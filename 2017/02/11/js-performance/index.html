@@ -1,0 +1,689 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="#
+#编译u4 v8本文主要在u4版本v8上面核实这篇文章performance killer里面提到的某些代码写法导致函数不能被优化。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="js-performance">
+<meta property="og:url" content="http://provensy.com/2017/02/11/js-performance/index.html">
+<meta property="og:site_name" content="provensy">
+<meta property="og:description" content="#
+#编译u4 v8本文主要在u4版本v8上面核实这篇文章performance killer里面提到的某些代码写法导致函数不能被优化。">
+<meta property="og:updated_time" content="2017-02-11T07:00:34.509Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="js-performance">
+<meta name="twitter:description" content="#
+#编译u4 v8本文主要在u4版本v8上面核实这篇文章performance killer里面提到的某些代码写法导致函数不能被优化。">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://provensy.com/2017/02/11/js-performance/"/>
+
+
+
+
+
+  <title> js-performance | provensy </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">provensy</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+    
+      <p class="site-subtitle"></p>
+    
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+  <link itemprop="mainEntityOfPage" href="http://provensy.com/2017/02/11/js-performance/">
+
+  <span style="display:none" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <meta itemprop="name" content="provensy">
+    <meta itemprop="description" content="">
+    <meta itemprop="image" content="/images/avatar.gif">
+  </span>
+
+  <span style="display:none" itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+    <meta itemprop="name" content="provensy">
+    <span style="display:none" itemprop="logo" itemscope itemtype="http://schema.org/ImageObject">
+      <img style="display:none;" itemprop="url image" alt="provensy" src="">
+    </span>
+  </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                js-performance
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-02-11T14:56:13+08:00">
+                2017-02-11
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/V8-Java-script/" itemprop="url" rel="index">
+                    <span itemprop="name">V8, Java script</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>#</p>
+<p>#编译u4 v8<br>本文主要在u4版本v8上面核实这篇文章<a href="https://github.com/petkaantonov/bluebird/wiki/Optimization-killers" target="_blank" rel="external">performance killer</a>里面提到的某些代码写法导致函数不能被优化。</p>
+<a id="more"></a>
+<p>运行以下脚本<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">#!/bin/sh</div><div class="line"></div><div class="line">PREFIX=~/Projects/u4master/</div><div class="line"></div><div class="line">cp $PREFIX/u4/src/v8 /tmp/v8 -rL</div><div class="line">cd /tmp/v8</div><div class="line">cp $PREFIX/u4/src/tools/gyp /tmp/v8/build/ -r</div><div class="line">mkdir third_party</div><div class="line">cp $PREFIX/u4/src/third_party/icu third_party/ -r</div><div class="line">cp $PREFIX/u4/src/testing/gtest testing/ -r</div><div class="line">cp $PREFIX/u4/src/testing/gmock testing/ -r</div><div class="line">sed -i -e &apos;/.*uc_build_disable_inspector.*/,+11d&apos; tools/gyp/v8.gyp</div></pre></td></tr></table></figure></p>
+<p>运行以下命令编译arm64版本<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">make arm64</div></pre></td></tr></table></figure></p>
+<p>编译arm版本<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">export ANDROID_NDK_ROOT=/media/sf_share/u4/android-ndk-r10e/</div><div class="line">export ANDROID_TOOLCHAIN=/media/sf_share/u4/android-ndk-r10e/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64/</div><div class="line">make android_arm.release -j4</div></pre></td></tr></table></figure></p>
+<p>##v8代码优化<br>查看v8中那些路径会放弃代码优化：DisableOptimization<br>另外，Hydrogen.cc中有很多的bailout逻辑，表明放弃代码优化。</p>
+<p>###DONT_OPTIMIZE_NODE<br>v8在生成ast tree的时候，会对某些declaration设置don’t optimize node的标志。<br>具体见ast.cc</p>
+<p>###eval<br>调用eval()函数不能被优化，<br>reason: Function calls eval</p>
+<p>###with<br>调用with的函数不能被优化。</p>
+<p>###let compound assignment<br>一个使用let compound assignment的例子：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">function let_compound() &#123;</div><div class="line">&quot;use strict&quot;</div><div class="line">let foo = 0;</div><div class="line">while (foo &lt; 10000) &#123;</div><div class="line">foo += 1</div><div class="line">&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>以下例子是let standard assignment:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">function let_compound() &#123;</div><div class="line">&quot;use strict&quot;</div><div class="line">let foo = 0;</div><div class="line">while (foo &lt; 10000) &#123;</div><div class="line">foo = foo + 1</div><div class="line">&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>应该避免在函数中写let compound assigment这样的代码，会使得函数不能被编译器优化。</p>
+<p>###const compound assigment<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">var iterations = 1;</div><div class="line">function const_compound() &#123;</div><div class="line">const foo = 0;</div><div class="line">while (foo &lt; iterations) &#123;</div><div class="line">foo += 1;</div><div class="line">&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p><code>foo += 1</code>放在while循环中会使得编译器尝试标记recompilation，最终不会被优化，报：<br>aborted optimizing<br>because: Unsupported const compound assignment]<br>`</p>
+<p>###for of statement<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">function for_of() &#123;</div><div class="line">var arr = [&quot;one&quot;, &quot;two&quot;, &quot;three&quot;]</div><div class="line">for (var e of arr) &#123;</div><div class="line">&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>包含for of的函数不能够被编译器优化。</p>
+<p>###object literal ‘<strong>proto</strong>‘<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">function proto() &#123;</div><div class="line">var obj = &#123; x: 1 &#125;</div><div class="line">var proto = &#123; y: 2 &#125;</div><div class="line">obj.__proto__ = proto</div><div class="line"></div><div class="line">if (obj.x === 2) &#123;&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>以上函数不会被编译器优化，编译器在marking for recompilation之后会disable该优化，<br>reason: Object literal with complex property<br>因为包含了<code>obj.__proto__ = proto</code>这一行代码，如果在这一行后面有访问obj方法的代码，就会导致该函数不能够被编译器优化。</p>
+<p>###object literal ‘get’/‘set’<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">function literal_get() &#123;</div><div class="line">return &#123;</div><div class="line">get value() &#123;</div><div class="line">return 3;</div><div class="line">&#125;,</div><div class="line">set value(v) &#123;</div><div class="line">value = v;</div><div class="line">&#125;</div><div class="line">&#125;;</div><div class="line">&#125;</div><div class="line"></div><div class="line">var d = literal_get</div><div class="line">d.value = 22</div></pre></td></tr></table></figure></p>
+<p>以上函数不会被编译器优化，编译器在marking for recompilation之后会disable该优化，<br>reason: Object literal with complex property</p>
+<p>而版本2会被编译器优化：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">// version 2</div><div class="line">function literal_get1() &#123;</div><div class="line">var obj = function () &#123;</div><div class="line">return &#123;</div><div class="line">get value() &#123;</div><div class="line">return value</div><div class="line">&#125;,</div><div class="line"></div><div class="line">set value(v) &#123;</div><div class="line">value = v;</div><div class="line">&#125;</div><div class="line">&#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line">obj.value = 2</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>###argument reassign<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">function reassign(a, b) &#123;</div><div class="line">//&quot;use strict&quot;</div><div class="line"></div><div class="line">if (arguments.length &lt; 2)</div><div class="line">b = 0</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>非strict模式下，以上函数不会被优化，<br>reason: Assignment to parameter in arguments object</p>
+<p>###leak arguments<br><a href="https://jsperf.com/optimizing-arguments/10" target="_blank" rel="external">https://jsperf.com/optimizing-arguments/10</a></p>
+<p>以下三个函数都会leak arguments：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">function leaksArguments1() &#123;</div><div class="line">return arguments</div><div class="line">&#125;</div><div class="line">function leaksArguments2() &#123;</div><div class="line">var args = [].slice.call(arguments)</div><div class="line">&#125;</div><div class="line">function leaksArguments3() &#123;</div><div class="line">var a = arguments</div><div class="line">return function() &#123;</div><div class="line">return a</div><div class="line">&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>不能被编译器优化，<br>reason: Bad value context for arguments value<br>解决方案：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">function notLeakingExample() &#123;</div><div class="line">var i = arguments.length;</div><div class="line">var args = [];</div><div class="line">while (i--) args[i] = arguments[i];</div><div class="line">return args</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>###for in statement with non local variable<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">function for_in1() &#123;</div><div class="line">var obj = &#123;&#125;</div><div class="line">for(var key in obj);</div><div class="line">return function() &#123;</div><div class="line">return key;</div><div class="line">&#125;;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>以上代码不能被编译器优化，<br>reason: ForInStatement with non-local each variable<br>以下代码在u4 v8上面仍然可以被优化：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">function for_in2() &#123;</div><div class="line">var obj = &#123;x:0, y:1&#125;</div><div class="line">var key;</div><div class="line">for(key in obj);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h3 id="for-in-statement-is-not-fast-case"><a href="#for-in-statement-is-not-fast-case" class="headerlink" title="for in statement is not fast case"></a>for in statement is not fast case</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">function iteratesOverArray() &#123;</div><div class="line">var arr = [1, 2, 3];</div><div class="line">for (var index in arr) &#123;</div><div class="line">&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>以上代码不能被编译器优化，在for in中，v8需要对object中所以可enumerable的属性进行分析。<br>reason: ForInStatement is not fast case<br>解决办法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">var obj = [1,2,3,4,5]</div><div class="line">var length = values.length</div><div class="line">var j = length</div><div class="line">do &#123;</div><div class="line">obj[--j]</div><div class="line">&#125; while (j)</div></pre></td></tr></table></figure></p>
+<p>##try catch finally<br>try catch finally代码块中的函数是不会被优化的，try.js<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">try &#123;</div><div class="line">function work(a, b) &#123;</div><div class="line">return a + b;</div><div class="line">&#125;</div><div class="line"></div><div class="line">work(1, 2);</div><div class="line">&#125; catch (e) &#123;&#125;</div></pre></td></tr></table></figure></p>
+<p>解决办法就是将具体的work()移出 try catch statement，也可以写个通用函数进行封装，在try catch中调用外部函数。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line">// http://jsperf.lnkit.com/fast-apply/5</div><div class="line">var invoke = function (fn, args, that) &#123;</div><div class="line">var un = that === undefined;</div><div class="line">if (args === undefined)</div><div class="line">return un ? fn()</div><div class="line">: fn.call(that);</div><div class="line">switch(args.length)&#123;</div><div class="line">case 0: return un ? fn()</div><div class="line">: fn.call(that);</div><div class="line">case 1: return un ? fn(args[0])</div><div class="line">: fn.call(that, args[0]);</div><div class="line">case 2: return un ? fn(args[0], args[1])</div><div class="line">: fn.call(that, args[0], args[1]);</div><div class="line">case 3: return un ? fn(args[0], args[1], args[2])</div><div class="line">: fn.call(that, args[0], args[1], args[2]);</div><div class="line">case 4: return un ? fn(args[0], args[1], args[2], args[3])</div><div class="line">: fn.call(that, args[0], args[1], args[2], args[3]);</div><div class="line">&#125; return fn.apply(that, args);</div><div class="line">&#125;</div><div class="line"></div><div class="line">export function tryCatch(fn, args, that) &#123;</div><div class="line">try &#123;</div><div class="line">return &#123; status: &quot;success&quot;, arg: fastApply(fn, args, that) &#125;</div><div class="line">&#125; catch (err) &#123;</div><div class="line">return &#123; status: &quot;error&quot;, arg: err &#125;</div><div class="line">&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>调用举例：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">tryCatch(gen.next, undefined, gen);</div></pre></td></tr></table></figure></p>
+<p>###deoptimization</p>
+<p>##References<br><a href="https://www.html5rocks.com/en/tutorials/speed/v8/" target="_blank" rel="external">https://www.html5rocks.com/en/tutorials/speed/v8/</a><br><a href="https://github.com/petkaantonov/bluebird/wiki/Optimization-killers" target="_blank" rel="external">https://github.com/petkaantonov/bluebird/wiki/Optimization-killers</a><br><a href="https://blog.ghaiklor.com/tracing-de-optimizations-in-nodejs-2ba16900fc6f#.yus0ps9wn" target="_blank" rel="external">https://blog.ghaiklor.com/tracing-de-optimizations-in-nodejs-2ba16900fc6f#.yus0ps9wn</a><br><a href="http://mrale.ph/blog/2013/04/29/performance-tuning-as-weather-forecast.html" target="_blank" rel="external">http://mrale.ph/blog/2013/04/29/performance-tuning-as-weather-forecast.html</a><br><a href="https://github.com/GoogleChrome/devtools-docs/issues/53" target="_blank" rel="external">https://github.com/GoogleChrome/devtools-docs/issues/53</a><br><a href="https://floitsch.blogspot.hk/search/label/V8-optimizations" target="_blank" rel="external">https://floitsch.blogspot.hk/search/label/V8-optimizations</a><br><a href="http://mrale.ph/blog/2011/12/18/v8-optimization-checklist.html" target="_blank" rel="external">http://mrale.ph/blog/2011/12/18/v8-optimization-checklist.html</a><br><a href="https://github.com/vhf/v8-bailout-reasons" target="_blank" rel="external">https://github.com/vhf/v8-bailout-reasons</a></p>
+<p>##其他</p>
+<ul>
+<li>node4.4.3中运行<code>node --trace-opt --trace-deopt test.js</code>，发现没有对代码块进行recompilation。<br>（把261改为263，发现有对函数work()进行编译优化）。</li>
+<li>找node对应的v8版本：<code>node -e &quot;console.log(process.versions.v8)&quot;</code>:<br>得到v8版本：4.5.103.35</li>
+</ul>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+
+    <footer class="post-footer">
+      
+
+      
+        
+      
+
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+          
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.gif"
+               alt="provensy" />
+          <p class="site-author-name" itemprop="name">provensy</p>
+          <p class="site-description motion-element" itemprop="description"></p>
+        </div>
+        <nav class="site-state motion-element">
+        
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">1</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-categories">
+              <a href="/categories">
+                <span class="site-state-item-count">2</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#for-in-statement-is-not-fast-case"><span class="nav-number">1.</span> <span class="nav-text">for in statement is not fast case</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">provensy</span>
+</div>
+
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+
+</body>
+</html>
