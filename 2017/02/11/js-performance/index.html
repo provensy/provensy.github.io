@@ -87,19 +87,16 @@
 
 
 
-<meta name="description" content="#
-#编译u4 v8本文主要在u4版本v8上面核实这篇文章performance killer里面提到的某些代码写法导致函数不能被优化。">
+<meta name="description" content="##编译u4 v8本文主要在u4版本v8上面核实这篇文章performance killer里面提到的某些代码写法导致函数不能被优化。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="js-performance">
 <meta property="og:url" content="http://provensy.com/2017/02/11/js-performance/index.html">
 <meta property="og:site_name" content="provensy">
-<meta property="og:description" content="#
-#编译u4 v8本文主要在u4版本v8上面核实这篇文章performance killer里面提到的某些代码写法导致函数不能被优化。">
-<meta property="og:updated_time" content="2017-02-11T07:00:34.509Z">
+<meta property="og:description" content="##编译u4 v8本文主要在u4版本v8上面核实这篇文章performance killer里面提到的某些代码写法导致函数不能被优化。">
+<meta property="og:updated_time" content="2017-02-11T07:43:06.809Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="js-performance">
-<meta name="twitter:description" content="#
-#编译u4 v8本文主要在u4版本v8上面核实这篇文章performance killer里面提到的某些代码写法导致函数不能被优化。">
+<meta name="twitter:description" content="##编译u4 v8本文主要在u4版本v8上面核实这篇文章performance killer里面提到的某些代码写法导致函数不能被优化。">
 
 
 
@@ -231,6 +228,16 @@
           </a>
         </li>
       
+        
+        <li class="menu-item menu-item-sitemap">
+          <a href="/sitemap.xml" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-sitemap"></i> <br />
+            
+            Sitemap
+          </a>
+        </li>
+      
 
       
     </ul>
@@ -357,9 +364,7 @@
       
 
       
-        <p>#</p>
-<p>#编译u4 v8<br>本文主要在u4版本v8上面核实这篇文章<a href="https://github.com/petkaantonov/bluebird/wiki/Optimization-killers" target="_blank" rel="external">performance killer</a>里面提到的某些代码写法导致函数不能被优化。</p>
-<a id="more"></a>
+        <p>##编译u4 v8<br>本文主要在u4版本v8上面核实这篇文章<a href="https://github.com/petkaantonov/bluebird/wiki/Optimization-killers" target="_blank" rel="external">performance killer</a>里面提到的某些代码写法导致函数不能被优化。<br><a id="more"></a></p>
 <p>运行以下脚本<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">#!/bin/sh</div><div class="line"></div><div class="line">PREFIX=~/Projects/u4master/</div><div class="line"></div><div class="line">cp $PREFIX/u4/src/v8 /tmp/v8 -rL</div><div class="line">cd /tmp/v8</div><div class="line">cp $PREFIX/u4/src/tools/gyp /tmp/v8/build/ -r</div><div class="line">mkdir third_party</div><div class="line">cp $PREFIX/u4/src/third_party/icu third_party/ -r</div><div class="line">cp $PREFIX/u4/src/testing/gtest testing/ -r</div><div class="line">cp $PREFIX/u4/src/testing/gmock testing/ -r</div><div class="line">sed -i -e &apos;/.*uc_build_disable_inspector.*/,+11d&apos; tools/gyp/v8.gyp</div></pre></td></tr></table></figure></p>
 <p>运行以下命令编译arm64版本<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">make arm64</div></pre></td></tr></table></figure></p>
 <p>编译arm版本<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">export ANDROID_NDK_ROOT=/media/sf_share/u4/android-ndk-r10e/</div><div class="line">export ANDROID_TOOLCHAIN=/media/sf_share/u4/android-ndk-r10e/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64/</div><div class="line">make android_arm.release -j4</div></pre></td></tr></table></figure></p>
@@ -499,7 +504,7 @@
           
             <div class="site-state-item site-state-categories">
               <a href="/categories">
-                <span class="site-state-item-count">2</span>
+                <span class="site-state-item-count">1</span>
                 <span class="site-state-item-name">categories</span>
               </a>
             </div>
